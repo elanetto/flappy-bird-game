@@ -28,6 +28,7 @@ function GameCanvas({ setScore }) {
     let loadedCount = 0;
     const totalAssets = 3;
 
+    // Goal: Make own drawings
     images.current.bird.src = "/bird.png";
     images.current.bg.src = "/bg.png";
     images.current.pipe.src = "/pipe.png";
