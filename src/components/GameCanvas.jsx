@@ -5,6 +5,8 @@ const FLAP_STRENGTH = -6;
 const PIPE_WIDTH = 60;
 const PIPE_GAP = 180;
 const PIPE_SPEED = 1.5;
+const CANVAS_WIDTH = 600;
+const CANVAS_HEIGHT = 500;
 
 function GameCanvas({ setScore }) {
   const canvasRef = useRef(null);
@@ -28,7 +30,6 @@ function GameCanvas({ setScore }) {
     let loadedCount = 0;
     const totalAssets = 3;
 
-    // Goal: Make own drawings. Yup.
     images.current.bird.src = "/bird.png";
     images.current.bg.src = "/bg.png";
     images.current.pipe.src = "/pipe.png";
@@ -46,25 +47,27 @@ function GameCanvas({ setScore }) {
   const createPipe = useCallback(() => {
     const topHeight = Math.random() * 200 + 20;
     return {
-      x: 600,
+      x: CANVAS_WIDTH,
       topHeight,
       bottomY: topHeight + PIPE_GAP,
       width: PIPE_WIDTH,
       passed: false,
+      hitboxHeight: topHeight, // for top pipe
+      hitboxBottomY: topHeight + PIPE_GAP, // for bottom pipe
+      hitboxThickness: 150, // visual pipes stay full, but hitbox is smaller
     };
   }, []);
 
   const resetGame = useCallback(() => {
     player.current.y = 200;
-    player.current.velocity = -2; // little flap
+    player.current.velocity = -2;
     pipes.current = [createPipe()];
     score.current = 0;
     setScore(0);
     setFinalScore(0);
     setGameOver(false);
-
-    // Short grace before game starts
     setIsRunning(false);
+
     setTimeout(() => {
       setIsRunning(true);
     }, 300);
@@ -73,14 +76,19 @@ function GameCanvas({ setScore }) {
   const checkCollision = (pipe) => {
     const p = player.current;
 
-    const collidePipe =
+    const hitTop =
       p.x < pipe.x + pipe.width &&
       p.x + p.width > pipe.x &&
-      (p.y < pipe.topHeight || p.y + p.height > pipe.bottomY);
+      p.y < pipe.hitboxHeight;
 
-    const outOfBounds = p.y < 0 || p.y + p.height > 500;
+    const hitBottom =
+      p.x < pipe.x + pipe.width &&
+      p.x + p.width > pipe.x &&
+      p.y + p.height > pipe.hitboxBottomY;
 
-    return collidePipe || outOfBounds;
+    const outOfBounds = p.y < 0 || p.y + p.height > CANVAS_HEIGHT;
+
+    return hitTop || hitBottom || outOfBounds;
   };
 
   const flap = useCallback(() => {
@@ -146,32 +154,23 @@ function GameCanvas({ setScore }) {
       // Draw background
       c.drawImage(images.current.bg, 0, 0, canvas.width, canvas.height);
 
-      // Pipes
+      // Draw full-size pipes
       pipes.current.forEach((pipe) => {
-        // Top pipe (rotated)
+        const pipeImg = images.current.pipe;
+        const pipeHeight = pipeImg.height;
+
+        // ✅ Top pipe (flipped upside down, starts from pipe.topHeight)
         c.save();
-        c.translate(pipe.x + pipe.width / 2, pipe.topHeight / 2);
-        c.rotate(Math.PI);
-        c.drawImage(
-          images.current.pipe,
-          -pipe.width / 2,
-          -pipe.topHeight / 2,
-          pipe.width,
-          pipe.topHeight
-        );
+        c.translate(pipe.x + pipe.width / 2, pipe.topHeight);
+        c.scale(1, -1); // Flip vertically
+        c.drawImage(pipeImg, -pipe.width / 2, 0, pipe.width, pipeHeight);
         c.restore();
 
-        // Bottom pipe
-        c.drawImage(
-          images.current.pipe,
-          pipe.x,
-          pipe.bottomY,
-          pipe.width,
-          canvas.height - pipe.bottomY
-        );
+        // ✅ Bottom pipe (normal)
+        c.drawImage(pipeImg, pipe.x, pipe.bottomY, pipe.width, pipeHeight);
       });
 
-      // Bird
+      // Draw bird
       c.drawImage(
         images.current.bird,
         player.current.x,
@@ -202,31 +201,27 @@ function GameCanvas({ setScore }) {
   ]);
 
   return (
-    <div className="flex flex-col sm:items-center items-start w-full overflow-x-hidden">
+    <div className="flex flex-col lg:justify-center justify-start w-full max-w-[600px] mx-auto px-4">
       {!isRunning && !gameOver && (
         <button
           onClick={resetGame}
-          className="mb-4 ml-4 sm:ml-0 px-6 py-2 bg-yellow-400 hover:bg-yellow-500 text-black font-bold rounded shadow"
+          className="mb-4 px-6 py-2 bg-yellow-400 hover:bg-yellow-500 text-black font-bold rounded shadow"
         >
           Start Game 🐤
         </button>
       )}
 
-      {/* Responsive scaling wrapper anchored left on mobile */}
-      <div className="relative w-[600px] h-[500px] max-w-full scale-100 sm:scale-100 xs:scale-[0.8] xxs:scale-[0.6] origin-top-left ml-0 sm:ml-auto">
-        {/* Game border/shadow wrapper */}
+      <div className="relative w-[600px] h-[500px]">
         <div className="absolute top-0 left-0 w-full h-full rounded-lg border-4 border-black shadow-lg overflow-hidden">
-          {/* Canvas */}
           <canvas
             ref={canvasRef}
-            width={600}
-            height={500}
+            width={CANVAS_WIDTH}
+            height={CANVAS_HEIGHT}
             className="absolute top-0 left-0"
           />
 
-          {/* Game Over Overlay */}
           {gameOver && (
-            <div className="absolute top-0 left-0 w-full h-full bg-black/70 text-white flex flex-col justify-center items-center space-y-4">
+            <div className="absolute top-0 left-0 w-full h-full bg-black/70  text-white flex flex-col justify-center items-center space-y-4">
               <h2 className="text-4xl font-bold">Bruh, you died</h2>
               <p className="text-2xl">Score: {finalScore}</p>
               <button
