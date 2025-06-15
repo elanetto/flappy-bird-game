@@ -49,12 +49,12 @@ function GameCanvas({ setScore }) {
     return {
       x: CANVAS_WIDTH,
       topHeight,
-      bottomY: topHeight + PIPE_GAP,
+      bottomY: topHeight + PIPE_GAP - 5,
       width: PIPE_WIDTH,
       passed: false,
-      hitboxHeight: topHeight, // for top pipe
+      hitboxHeight: topHeight - 5, // for top pipe
       hitboxBottomY: topHeight + PIPE_GAP, // for bottom pipe
-      hitboxThickness: 150, // visual pipes stay full, but hitbox is smaller
+      hitboxThickness: 1, // visual pipes stay full, but hitbox is smaller
     };
   }, []);
 
