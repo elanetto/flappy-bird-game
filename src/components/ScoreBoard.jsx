@@ -1,7 +1,8 @@
-function ScoreBoard({ score }) {
+function ScoreBoard({ score, highScore }) {
   return (
-    <div className="text-xl mb-4">
-      <span className="font-mono">Score: {score}</span>
+    <div className="mb-2 w-[550px] flex justify-between">
+      <span className="">High score: {highScore}</span>
+      <span className="">Score: {score}</span>
     </div>
   );
 }

@@ -3,12 +3,12 @@ import { useEffect, useRef, useCallback, useState } from "react";
 const GRAVITY = 0.25;
 const FLAP_STRENGTH = -6;
 const PIPE_WIDTH = 60;
-const PIPE_GAP = 180;
-const PIPE_SPEED = 1.5;
+const PIPE_GAP = 200;
+const PIPE_SPEED = 3.5;
 const CANVAS_WIDTH = 600;
 const CANVAS_HEIGHT = 500;
 
-function GameCanvas({ setScore }) {
+function GameCanvas({ setScore, setHighScore }) {
   const canvasRef = useRef(null);
   const player = useRef({ x: 100, y: 200, width: 40, height: 40, velocity: 0 });
 
@@ -52,9 +52,9 @@ function GameCanvas({ setScore }) {
       bottomY: topHeight + PIPE_GAP - 5,
       width: PIPE_WIDTH,
       passed: false,
-      hitboxHeight: topHeight - 5, // for top pipe
-      hitboxBottomY: topHeight + PIPE_GAP, // for bottom pipe
-      hitboxThickness: 1, // visual pipes stay full, but hitbox is smaller
+      hitboxHeight: topHeight - 5,
+      hitboxBottomY: topHeight + PIPE_GAP,
+      hitboxThickness: 1,
     };
   }, []);
 
@@ -138,7 +138,15 @@ function GameCanvas({ setScore }) {
           }
 
           if (checkCollision(pipe) && !gameOver) {
-            setFinalScore(score.current);
+            const currentScore = score.current;
+            setFinalScore(currentScore);
+
+            const storedHighScore = parseInt(localStorage.getItem("highScore") || "0");
+            if (currentScore > storedHighScore) {
+              localStorage.setItem("highScore", currentScore);
+              setHighScore(currentScore); // pass up to ScoreBoard
+            }
+
             setGameOver(true);
             setIsRunning(false);
           }
@@ -151,26 +159,26 @@ function GameCanvas({ setScore }) {
         pipes.current = pipes.current.filter((p) => p.x + p.width > 0);
       }
 
-      // Draw background
+      // Background
       c.drawImage(images.current.bg, 0, 0, canvas.width, canvas.height);
 
-      // Draw full-size pipes
+      // Pipes
       pipes.current.forEach((pipe) => {
         const pipeImg = images.current.pipe;
         const pipeHeight = pipeImg.height;
 
-        // ✅ Top pipe (flipped upside down, starts from pipe.topHeight)
+        // Top pipe
         c.save();
         c.translate(pipe.x + pipe.width / 2, pipe.topHeight);
-        c.scale(1, -1); // Flip vertically
+        c.scale(1, -1);
         c.drawImage(pipeImg, -pipe.width / 2, 0, pipe.width, pipeHeight);
         c.restore();
 
-        // ✅ Bottom pipe (normal)
+        // Bottom pipe
         c.drawImage(pipeImg, pipe.x, pipe.bottomY, pipe.width, pipeHeight);
       });
 
-      // Draw bird
+      // Bird
       c.drawImage(
         images.current.bird,
         player.current.x,
@@ -198,19 +206,11 @@ function GameCanvas({ setScore }) {
     setScore,
     gameOver,
     flap,
+    setHighScore,
   ]);
 
   return (
     <div className="flex flex-col lg:justify-center justify-start w-full max-w-[600px] mx-auto px-4">
-      {!isRunning && !gameOver && (
-        <button
-          onClick={resetGame}
-          className="mb-4 px-6 py-2 bg-yellow-400 hover:bg-yellow-500 text-black font-bold rounded shadow"
-        >
-          Start Game 🐤
-        </button>
-      )}
-
       <div className="relative w-[600px] h-[500px]">
         <div className="absolute top-0 left-0 w-full h-full rounded-lg border-4 border-black shadow-lg overflow-hidden">
           <canvas
@@ -220,8 +220,9 @@ function GameCanvas({ setScore }) {
             className="absolute top-0 left-0"
           />
 
+          {/* Game Over screen */}
           {gameOver && (
-            <div className="absolute top-0 left-0 w-full h-full bg-black/70  text-white flex flex-col justify-center items-center space-y-4">
+            <div className="absolute top-0 left-0 w-full h-full bg-black/70 text-white flex flex-col justify-center items-center space-y-4">
               <h2 className="text-4xl font-bold">Bruh, you died</h2>
               <p className="text-2xl">Score: {finalScore}</p>
               <button
@@ -229,6 +230,18 @@ function GameCanvas({ setScore }) {
                 className="mt-2 px-6 py-2 bg-yellow-400 hover:bg-yellow-500 text-black font-bold rounded shadow"
               >
                 Restart
+              </button>
+            </div>
+          )}
+
+          {/* Start Game screen */}
+          {!isRunning && !gameOver && (
+            <div className="absolute top-0 left-0 w-full h-full bg-black/70 text-white flex flex-col justify-center items-center space-y-4">
+              <button
+                onClick={resetGame}
+                className="mt-2 px-6 py-2 bg-yellow-400 hover:bg-yellow-500 text-black font-bold rounded shadow"
+              >
+                Start Game 🐤
               </button>
             </div>
           )}
